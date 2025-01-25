@@ -22,7 +22,7 @@ observed <- plant.summary %>% filter(iNatObservationStatus == 'observed')
 Over one thousand vascular plant species are known to occur within the Átl’ḵa7tsem/Howe Sound Biosphere, represented by `r nrow(plants)` occurrence records. This diverse flora spans nine biogeoclimatic units, from lowland coastal western hemlock forests and associated woodland communities to high elevation subalpine and alpine plant communities.
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-source("scripts/Vascular_plant_map_script.R")
+source("scripts/vascularPlantsBECMap.R")
 speciesMap
 ```
 
@@ -92,7 +92,7 @@ Based on our current knowledge, `r round(nrow(protected.plants)/nrow(native.plan
 
 Antranig Basman, Judith Holm, Ben Keen, Murray Journeay & Andrew Simon
 
-March 26th, 2023
+January 25th, 2025
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
