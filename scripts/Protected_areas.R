@@ -1,5 +1,9 @@
 # Map Átl’ka7tsem's vascular plant diversity in relation to protected areas
 
+# Set relative paths (https://stackoverflow.com/questions/13672720/r-command-for-setting-working-directory-to-source-file-location-in-rstudio)
+
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) 
+
 # Load libraries
 
 library(Dict)
@@ -15,11 +19,11 @@ library(viridis)
 
 # Source dependencies
 
-source("scripts/utils.R")
+source("../scripts/utils.R")
 
 # Read occurrence data (plants x protected area)
 
-plants.x.protected.area <- read.csv("tabular_data/plants_x_protected_areas.csv")
+plants.x.protected.area <- read.csv("../tabular_data/plants_x_protected_areas.csv")
 
 plants.x.protected.area$X <- NULL
 
