@@ -19,6 +19,11 @@ library(jsonlite)
 
 library(plotly)
 
+# Set relative paths (https://stackoverflow.com/questions/13672720/r-command-for-setting-working-directory-to-source-file-location-in-rstudio)
+if (!isTRUE(getOption('knitr.in.progress'))) {
+  setwd(paste0(dirname(rstudioapi::getActiveDocumentContext()$path), "/.."))
+}
+
 # Source dependencies
 
 source("scripts/utils.R")

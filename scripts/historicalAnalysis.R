@@ -21,9 +21,14 @@ library(sf)
 library(tidyr)
 library(viridis)
 
+# Set relative paths (https://stackoverflow.com/questions/13672720/r-command-for-setting-working-directory-to-source-file-location-in-rstudio)
+if (!isTRUE(getOption('knitr.in.progress'))) {
+  setwd(paste0(dirname(rstudioapi::getActiveDocumentContext()$path), "/.."))
+}
+
 # Source dependencies
 
-source("../scripts/utils.R")
+source("scripts/utils.R")
 
 # Plot analysis of historical collection activities
 
@@ -36,6 +41,8 @@ speciesPlot <- speciesPlot %>%
       )
 
 steps <- list()
+
+return()
 
 # General method cribbed from https://plotly.com/r/sliders/#sine-wave-slider
 

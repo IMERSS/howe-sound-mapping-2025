@@ -1,8 +1,9 @@
 # Visualize vascular plant diversity in Átl’ka7tsem by BEC unit
 
 # Set relative paths (https://stackoverflow.com/questions/13672720/r-command-for-setting-working-directory-to-source-file-location-in-rstudio)
-
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) 
+if (!isTRUE(getOption('knitr.in.progress'))) {
+  setwd(paste0(dirname(rstudioapi::getActiveDocumentContext()$path), "/.."))
+}
 
 # Load libraries
 
@@ -18,25 +19,25 @@ library(htmlwidgets)
 
 # Source dependencies
 
-source("../scripts/utils.R")
+source("scripts/utils.R")
 
 # Call tabular data
 
-BEC.x.plants <- read.csv("../tabular_data/BEC_x_vascular_plants_summary_2024.csv")
+BEC.x.plants <- read.csv("tabular_data/BEC_x_vascular_plants_summary_2024.csv")
 
 # Call spatial data
 
 # Layer 1: BEC zones
-BEC <- mx_read("../spatial_data/vectors/BEC")
+BEC <- mx_read("spatial_data/vectors/BEC")
 
 # Layer 2: hillshade raster
-hillshade <- raster("../spatial_data/rasters/Hillshade_80m.tif")
+hillshade <- raster("spatial_data/rasters/Hillshade_80m.tif")
 
 # Layer 3: coastline
-coastline <- mx_read("../spatial_data/vectors/Islands_and_Mainland")
+coastline <- mx_read("spatial_data/vectors/Islands_and_Mainland")
 
 # Layer 4: watershed boundary
-watershed.boundary <- mx_read("../spatial_data/vectors/Howe_Sound")
+watershed.boundary <- mx_read("spatial_data/vectors/Howe_Sound")
 
 # Create map labels
 
@@ -79,7 +80,7 @@ BEC <- base::merge(BEC, palette, by.x ="MAP_LABEL", by.y="cat")
 
 # Write plant x BEC Zone summary to JSON file for viz
 
-write(jsonlite::toJSON(vascularData, auto_unbox = TRUE, pretty = TRUE), "../viz_data/Vascular-plotData.json")
+write(jsonlite::toJSON(vascularData, auto_unbox = TRUE, pretty = TRUE), "viz_data/Vascular-plotData.json")
 
 # Plot map
 
