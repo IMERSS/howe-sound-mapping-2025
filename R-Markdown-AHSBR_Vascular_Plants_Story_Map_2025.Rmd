@@ -42,15 +42,6 @@ While Indigenous knowledge of Átl’ḵa7tsem's plant life traces back to time 
 eval(parse("scripts/historicalAnalysis.R", encoding="UTF-8"))
 heatMap
 speciesPlot
-# animate(
-#    plot = plot,
-#    render = gifski_renderer(),
-#    height = 420,
-#    width = 700, 
-#    duration = 10,
-#    fps = 30,
-#    res = 100,
-#    end_pause = 120)
 ```
 
 ## Community science contributions

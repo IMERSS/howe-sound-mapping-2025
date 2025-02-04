@@ -29,20 +29,23 @@ if (!isTRUE(getOption('knitr.in.progress'))) {
 # Source dependencies
 
 source("scripts/utils.R")
+source("scripts/geomUtils.R")
+
+cumulative.history <- read.csv("tabular_data/history_1897-2024_cumulative.csv")
+
+year <- cumulative.history$year
 
 # Plot analysis of historical collection activities
 
 speciesPlot <- plot_ly(width = 700, height = 420)
 
 speciesPlot <- speciesPlot %>%
-      layout(title='Vascular plant species recorded in Átl’ḵa7tsem/Howe Sound 1890-2022', showlegend = FALSE,
-      xaxis = list(title="Year", range = c(1900, 2022)),
-      yaxis = list(title='Reported Species', range=c(0, max(cum.spp)))
+      layout(title='Vascular plant species recorded in Átl’ḵa7tsem/Howe Sound 1890-2024', showlegend = FALSE,
+      xaxis = list(title="Year", range = c(1900, 2024)),
+      yaxis = list(title='Reported Species', range=c(0, max(cumulative.history$cum.spp)))
       )
 
 steps <- list()
-
-return()
 
 # General method cribbed from https://plotly.com/r/sliders/#sine-wave-slider
 
@@ -50,7 +53,7 @@ for (i in 1:length(year)) {
     args <- list('visible', rep(FALSE, length(year)))
     args[[2]][i] = TRUE
     steps[[i]] <- list(label = year[[i]], method="restyle", args=args)
-    sppRange <- cum.spp[1:i]
+    sppRange <- cumulative.history$cum.spp[1:i]
     yearRange <- year[1:i]
     speciesPlot <- speciesPlot %>% add_lines(x=yearRange, y=sppRange, line=list(color='green'), type='scatter', mode='lines', visible = i == 1)
 }
@@ -59,6 +62,7 @@ speciesPlot <- layout(speciesPlot, meta = list(mx_widgetId = "speciesPlot"),
                       sliders = list(list(active=0, steps = steps)))
 
 speciesPlot
+
 
 # Most historical data collected in the 1920s and between the 1960s and 1980s;
 # Large increase in observations and recorded species with the emergence of 
@@ -83,9 +87,8 @@ coastline <- mx_read("spatial_data/vectors/Islands_and_Mainland")
 watershed.boundary <- mx_read("spatial_data/vectors/Howe_Sound")
 
 # Layer 4: gridded history choropleth
-gridded.history <- mx_read("spatial_data/vectors/gridded_history")
-
-gridded.history <- gridded.history %>% drop_na(richness)
+gridded.history <- read.csv("tabular_data/gridded_history_1897-2024_cumulative.csv")
+howegrid <- read_grid_frame("tabular_data/gridframe.json")
 
 # Create color palette for species richness
 
@@ -95,20 +98,25 @@ values <- sort(values)
 t <- length(values)
 pal <- leaflet::colorFactor(viridis_pal(option = "D")(t), domain = values)
 
-history.1900 <- filter(gridded.history, year == 1900)
-history.1910 <- filter(gridded.history, year == 1910)
-history.1920 <- filter(gridded.history, year == 1920)
-history.1930 <- filter(gridded.history, year == 1930)
-history.1940 <- filter(gridded.history, year == 1940)
-history.1950 <- filter(gridded.history, year == 1950)
-history.1960 <- filter(gridded.history, year == 1960)
-history.1970 <- filter(gridded.history, year == 1970)
-history.1980 <- filter(gridded.history, year == 1980)
-history.1990 <- filter(gridded.history, year == 1990)
-history.2000 <- filter(gridded.history, year == 2000)
-history.2010 <- filter(gridded.history, year == 2010)
-history.2020 <- filter(gridded.history, year == 2020)
-history.2022 <- filter(gridded.history, year == 2022)
+fetchLayer <- function (year) {
+    rows <- filter(gridded.history, period == paste0("1890-", year))
+    shape <- assign_cell_geometry_sf(rows, howegrid)
+}
+
+history.1900 <- fetchLayer(1900)
+history.1910 <- fetchLayer(1910)
+history.1920 <- fetchLayer(1920)
+history.1930 <- fetchLayer(1930)
+history.1940 <- fetchLayer(1940)
+history.1950 <- fetchLayer(1950)
+history.1960 <- fetchLayer(1960)
+history.1970 <- fetchLayer(1970)
+history.1980 <- fetchLayer(1980)
+history.1990 <- fetchLayer(1990)
+history.2000 <- fetchLayer(2000)
+history.2010 <- fetchLayer(2010)
+history.2020 <- fetchLayer(2020)
+history.2022 <- fetchLayer(2022)
 
 historyData <- list(mapTitle = "Map 2. Historical collection activities")
 write(jsonlite::toJSON(historyData, auto_unbox = TRUE, pretty = TRUE), "viz_data/History-plotData.json")
