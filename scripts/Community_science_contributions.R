@@ -27,71 +27,26 @@ if (!isTRUE(getOption('knitr.in.progress'))) {
 # Source dependencies
 
 source("scripts/utils.R")
+source("scripts/geomUtils.R")
 
-# Read records and summary
+# Read gridded records and summary
 
-plants <- read.csv("tabular_data/gridded_plants_WGS84.csv")
+reporting.status.grid <- read.csv("tabular_data/gridded_reporting_status.csv")
 
-summary <- read.csv("tabular_data/vascular_plant_summary_resynthesized_2023-03-05.csv")
+howegrid <- read_grid_frame("tabular_data/gridframe.json")
 
-# Subset historic, confirmed and new records
+fetchLayer <- function (requiredStatus) {
+  rows <- filter(reporting.status.grid, status == requiredStatus)
+  shape <- assign_cell_geometry_sf(rows, howegrid)
+}
 
-new <- summary %>% filter(str_detect(reportingStatus, "new"))
-confirmed <- summary %>% filter(reportingStatus == "confirmed")
-reported <- summary %>% filter(reportingStatus == "reported")
-
-# Create vectors of historic, confirmed and new taxa to query catalog of occurrence records
-
-new.taxa <- unique(new$scientificName)
-new.taxa <- new.taxa %>% paste(collapse = "|")
-
-confirmed.taxa <- unique(confirmed$scientificName)
-confirmed.taxa <- confirmed.taxa %>% paste(collapse = "|")
-
-reported.taxa <- unique(reported$scientificName)
-reported.taxa <- reported.taxa %>% paste(collapse = "|")
-
-new.taxa.records <- plants %>% filter(str_detect(scientificName, new.taxa))
-new.taxa.records$status <- 'new'
-
-confirmed.taxa.records <- plants %>% filter(str_detect(scientificName,confirmed.taxa))
-confirmed.taxa.records$status <- 'confirmed'
-
-reported.taxa.records <- plants %>% filter(str_detect(scientificName, reported.taxa))
-reported.taxa.records$status <- 'historic'
-
-records <- rbind(new.taxa.records, confirmed.taxa.records, reported.taxa.records)
-
-# Summarise plant species by reporting status
-
-taxa.status <- records %>% group_by(status) %>% 
-  summarize(taxa = paste(sort(unique(scientificName)),collapse=", "))
-
-### PLOT GRIDDED HEATMAPS 
-
-# Load map layers
-
-# Hillshade raster
-hillshade <- raster("spatial_data/rasters/Hillshade_80m.tif")
-
-# Coastline
-coastline <- mx_read("spatial_data/vectors/Islands_and_Mainland")
-
-# Watershed boundary
-watershed.boundary <- mx_read("spatial_data/vectors/Howe_Sound")
-
-# Gridded records by reporting status
-gridded.confirmed.records <- mx_read("spatial_data/vectors/gridded_confirmed_records")
-gridded.historic.records <- mx_read("spatial_data/vectors/gridded_historic_records")
-gridded.new.records <- mx_read("spatial_data/vectors/gridded_new_records")
-
-# Combine records to create normalized palette
-
-gridded.records <- rbind(gridded.confirmed.records, gridded.historic.records, gridded.new.records)
+gridded.confirmed.records <- fetchLayer("confirmed")
+gridded.historic.records <- fetchLayer("historical")
+gridded.new.records <- fetchLayer("new")
 
 # Create color palette for species richness
 
-richness <- gridded.records$richness
+richness <- reporting.status.grid$richness
 values <- richness %>% unique
 values <- sort(values)
 t <- length(values)
@@ -116,6 +71,16 @@ reportingStatusMap <- leaflet(options=list(mx_mapId="Status")) %>%
 print(reportingStatusMap)
 
 # Stacked bar plot of historic vs confirmed vs new records
+
+summary <- read.csv("tabular_data/vascular_plant_summary_resynthesized_2024-11-14.csv", fileEncoding = "UTF-8")
+
+# Simplify "new" values of reportingStatus
+summary <- summary %>%
+  mutate(reportingStatus = ifelse(str_detect(reportingStatus, "new"), "new", reportingStatus))
+
+new <- summary %>% filter(reportingStatus == "new")
+confirmed <- summary %>% filter(reportingStatus == "confirmed")
+reported <- summary %>% filter(reportingStatus == "reported")
 
 y <- c('records')
 confirmed.no <- c(nrow(confirmed))
@@ -151,8 +116,11 @@ reportingStatusFig
 
 reportingPal <- list("confirmed" = "#5a96d2", "historic" = "#decb90", "new" = "#7562b4")
 
+taxa.status <- summary %>% group_by(reportingStatus) %>% 
+  summarize(taxa = paste(sort(unique(scientificName)),collapse=", "))
+
 # Convert taxa to named list so that JSON can recognise it
-statusTaxa <- split(x = taxa.status$taxa, f=taxa.status$status)
+statusTaxa <- split(x = taxa.status$taxa, f=taxa.status$reportingStatus)
 
 # Write summarised plants to JSON file for viz 
 # (selection states corresponding with bar plot selections: 'new', 'historic','confirmed')
@@ -160,16 +128,17 @@ statusData <- structure(list(palette = reportingPal, taxa = statusTaxa, mapTitle
 
 write(jsonlite::toJSON(statusData, auto_unbox = TRUE, pretty = TRUE), "viz_data/Status-plotData.json")
 
+
 # Export CSVs for confirmed, historic and new reports
 
-plants <- read.csv("tabular_data/Howe_Sound_vascular_plant_records_consolidated.csv")
+plants <- timedFread("tabular_data/Howe_Sound_vascular_plant_records_consolidated_2024-11-14.csv")
 
-confirmed.taxa.records <- plants %>% filter(str_detect(scientificName, confirmed.taxa))
-new.taxa.records <- plants %>% filter(str_detect(scientificName, new.taxa))
-reported.taxa.records <- plants %>% filter(str_detect(scientificName, reported.taxa))
+confirmed.taxa.records <- plants %>% filter(scientificName %in% confirmed$scientificName)
+new.taxa.records <- plants %>% filter(scientificName %in% new$scientificName)
+reported.taxa.records <- plants %>% filter(scientificName %in% reported$scientificName)
 
-write.csv(confirmed.taxa.records, "outputs/AHSBR_vascular_plants_confirmed_taxa_records.csv", row.names = FALSE)
+timedWrite(confirmed.taxa.records, "outputs/AHSBR_vascular_plants_confirmed_taxa_records.csv")
 
-write.csv(new.taxa.records, "outputs/AHSBR_vascular_plants_new_taxa_records.csv", row.names = FALSE)
+timedWrite(new.taxa.records, "outputs/AHSBR_vascular_plants_new_taxa_records.csv")
 
-write.csv(reported.taxa.records, "outputs/AHSBR_vascular_plants_historic_taxa_records.csv", row.names = FALSE)
+timedWrite(reported.taxa.records, "outputs/AHSBR_vascular_plants_historic_taxa_records.csv")

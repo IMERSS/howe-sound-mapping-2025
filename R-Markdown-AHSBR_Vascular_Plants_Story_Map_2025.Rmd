@@ -22,7 +22,7 @@ observed <- plant.summary %>% filter(iNatObservationStatus == 'observed')
 Over one thousand vascular plant species are known to occur within the Átl’ḵa7tsem/Howe Sound Biosphere, represented by `r nrow(plants)` occurrence records. This diverse flora spans nine biogeoclimatic units, from lowland coastal western hemlock forests and associated woodland communities to high elevation subalpine and alpine plant communities.
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE}
-source("scripts/vascularPlantsBECMap.R")
+source("scripts/Vascular_plants_BEC_map.R")
 speciesMap
 ```
 
@@ -39,7 +39,7 @@ While Indigenous knowledge of Átl’ḵa7tsem's plant life traces back to time 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 # According to https://stackoverflow.com/questions/5031630/how-to-source-r-file-saved-using-utf-8-encoding this strange strategy is now necessary since the 
 # file contains a character outside the Unicode BMP
-eval(parse("scripts/historicalAnalysis.R", encoding="UTF-8"))
+eval(parse("scripts/Historical_analysis.R", encoding="UTF-8"))
 heatMap
 speciesPlot
 ```

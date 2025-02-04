@@ -131,22 +131,22 @@ ER.plants <- plants.x.protected.area %>% filter(protectedAreaType == 'Ecological
 OGMA.plants <- plants.x.protected.area %>% filter(protectedAreaType == 'Old Growth Management Areas (Mapped Legal)')
 WMA.plants <- plants.x.protected.area %>% filter(protectedAreaType == 'Wildlife Management Area')
 
-write.csv(OECM.plants, "outputs/AHSBR_OECM_vascular_plants.csv", row.names = FALSE)
-write.csv(A.Park.plants, "outputs/AHSBR_Class_A_Parks_vascular_plants.csv", row.names = FALSE)
-write.csv(Private.Conservation.Area.plants, "outputs/AHSBR_Private_Conservation_Area_vascular_plants.csv", row.names = FALSE)
-write.csv(WHA.plants, "outputs/AHSBR_Wildlife_Habitat_Area_vascular_plants.csv", row.names = FALSE)
-write.csv(PA.plants, "outputs/AHSBR_Protected_Area_vascular_plants.csv", row.names = FALSE)
-write.csv(S2S.plants, "outputs/AHSBR_Sea_to_Sky_Wildland_Zones_vascular_plants.csv", row.names = FALSE)
-write.csv(MBS.plants, "outputs/AHSBR_Migratory_Bird_Sanctuary_vascular_plants.csv", row.names = FALSE)
-write.csv(Conservancy.plants, "outputs/AHSBR_Conservancy_vascular_plants.csv", row.names = FALSE)
-write.csv(ER.plants, "outputs/AHSBR_Ecological_Reserve_vascular_plants.csv", row.names = FALSE)
-write.csv(OGMA.plants, "outputs/AHSBR_Old_Growth_Management_Areas_vascular_plants.csv", row.names = FALSE)
-write.csv(WMA.plants, "outputs/AHSBR_Wildlife_Management_Area_vascular_plants.csv", row.names = FALSE)
+timedWrite(OECM.plants, "outputs/AHSBR_OECM_vascular_plants.csv")
+timedWrite(A.Park.plants, "outputs/AHSBR_Class_A_Parks_vascular_plants.csv")
+timedWrite(Private.Conservation.Area.plants, "outputs/AHSBR_Private_Conservation_Area_vascular_plants.csv")
+timedWrite(WHA.plants, "outputs/AHSBR_Wildlife_Habitat_Area_vascular_plants.csv")
+timedWrite(PA.plants, "outputs/AHSBR_Protected_Area_vascular_plants.csv")
+timedWrite(S2S.plants, "outputs/AHSBR_Sea_to_Sky_Wildland_Zones_vascular_plants.csv")
+timedWrite(MBS.plants, "outputs/AHSBR_Migratory_Bird_Sanctuary_vascular_plants.csv")
+timedWrite(Conservancy.plants, "outputs/AHSBR_Conservancy_vascular_plants.csv")
+timedWrite(ER.plants, "outputs/AHSBR_Ecological_Reserve_vascular_plants.csv")
+timedWrite(OGMA.plants, "outputs/AHSBR_Old_Growth_Management_Areas_vascular_plants.csv")
+timedWrite(WMA.plants, "outputs/AHSBR_Wildlife_Management_Area_vascular_plants.csv")
 
 
 ## Prepare summary of native plant diversity protected in the area
 
-plant.summary <- read.csv("tabular_data/vascular_plant_summary_resynthesized_2023-03-05.csv")
+plant.summary <- timedFread("tabular_data/vascular_plant_summary_resynthesized_2024-11-14.csv");
 
 native.plants <- plant.summary %>% filter(establishmentMeans == 'native')
 
@@ -156,6 +156,6 @@ protected.plants <- protected.plants %>% paste(collapse = '|')
   
 protected.plants <- plant.summary %>% filter(str_detect(scientificName, protected.plants))
 
-write.csv(native.plants, "outputs/AHSBR_native_vascular_plant_species.csv")
+timedWrite(native.plants, "outputs/AHSBR_native_vascular_plant_species.csv")
 
-write.csv(protected.plants, "outputs/AHSBR_protected_native_vascular_plant_species.csv")
+timedWrite(protected.plants, "outputs/AHSBR_protected_native_vascular_plant_species.csv")

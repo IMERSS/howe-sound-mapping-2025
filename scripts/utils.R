@@ -46,6 +46,25 @@ mx_read <- function (filename, digits = 4) {
   rounded <- round_sf(trans, digits);
 }
 
+# Read a CSV file fast with the proper encoding - note that read.csv is generally faulty
+timedFread <- function (toread) {
+  start <- Sys.time()
+  frame <- data.table::fread(toread, encoding = "UTF-8")
+  end <- Sys.time()
+  message("Read ", nrow(frame), " rows from ", toread, " in ", (end - start), "s")
+  # Otherwise traditional R indexing notation fails
+  as.data.frame(frame)
+}
+
+timedWrite <- function (x, towrite) {
+  start <- Sys.time()
+  # Approach for selective quoting taken from https://stackoverflow.com/a/25810538/1381443
+  commas <- which(sapply(x, function(y) any(grepl(",",y))))
+  write.csv(x, towrite, na = "", row.names = FALSE, quote = commas, fileEncoding = "UTF-8")
+  end <- Sys.time()
+  message("Written ", nrow(x), " rows to ", towrite, " in ", (end - start), "s")
+}
+
 # Attach the region's label as an "mx_regionId" option in the output data
 labelToOption <- function (label) {
   return (list(mx_regionId = label))
