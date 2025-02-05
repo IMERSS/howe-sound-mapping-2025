@@ -1,7 +1,7 @@
 {
     reknitJobs: [{
-        infile: "%maxwell/docs/R-Markdown-AHSBR_Map_1.html",
-        outfile: "%maxwell/docs/R-Markdown-AHSBR_Map_1-Reknitted.html",
+        infile: "%maxwell/docs/R-Markdown-AHSBR_Vascular_Plants_Story_Map_2025.html",
+        outfile: "%maxwell/docs/R-Markdown-AHSBR_Vascular_Plants_Story_Map_2025-Reknitted.html",
         options: {
             template: "%maxwell/src/html/template.html",
             paneHandlers: {
@@ -9,7 +9,7 @@
                     type: "maxwell.scrollyPaneHandler",
                     gradeNames: ["maxwell.withRegionPaneInfo", "maxwell.scrollyVizBinder.withLegend", "maxwell.scrollyVizBinder"],
                     regionBinderGrades: ["maxwell.withLabelledRegionName"],
-                    vizFile: "%resourceBase/data/Howe-Sound-Scrolly-Life-Vascular.json.lz4",
+                    vizFile: "%resourceBase/data/Howe-Sound-Scrolly-Life-Vascular-2025.json.lz4",
                     phyloMap: "%resourceBase/json/howePhyloMap.json",
                     downloadTemplate: "data/tabular/AHSBR_%regionName_vascular_plants.csv"
                 },
@@ -26,7 +26,7 @@
                     type: "maxwell.scrollyPaneHandler",
                     gradeNames: ["maxwell.withPaneInfo", "maxwell.scrollyVizBinder.withLegend", "maxwell.scrollyVizBinder"],
                     paneInfoGrades: ["maxwell.statusCellPaneInfo"],
-                    vizFile: "%resourceBase/data/Howe-Sound-Scrolly-Life-Status.json.lz4",
+                    vizFile: "%resourceBase/data/Howe-Sound-Scrolly-Life-Status-2025.json.lz4",
                     phyloMap: "%resourceBase/json/howePhyloMap.json",
                     regionMarkup: "Selected reporting status: <span class=\"fl-imerss-region-key\">%region</span>",
                     widgets: {
@@ -138,15 +138,13 @@
         source: "%maxwell/viz_data/howePhyloMap.json",
         target: "%maxwell/docs/json/howePhyloMap.json"
     }, {
-        source: "%maxwell/viz_data/Howe-Sound-Scrolly-Life-Vascular.json.lz4",
-        target: "%maxwell/docs/data/Howe-Sound-Scrolly-Life-Vascular.json.lz4"
+        source: "%maxwell/viz_data/Howe-Sound-Scrolly-Life-Vascular-2025.json.lz4",
+        target: "%maxwell/docs/data/Howe-Sound-Scrolly-Life-Vascular-2025.json.lz4"
     }, {
-        source: "%maxwell/viz_data/Howe-Sound-Scrolly-Life-Status.json.lz4",
-        target: "%maxwell/docs/data/Howe-Sound-Scrolly-Life-Status.json.lz4"
+        source: "%maxwell/viz_data/Howe-Sound-Scrolly-Life-Status-2025.json.lz4",
+        target: "%maxwell/docs/data/Howe-Sound-Scrolly-Life-Status-2025.json.lz4"
     }, {
         source: "%maxwell/outputs",
         target: "%maxwell/docs/data/tabular"
     }]
 }
-
-
