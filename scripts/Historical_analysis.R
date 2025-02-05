@@ -116,7 +116,7 @@ history.1990 <- fetchLayer(1990)
 history.2000 <- fetchLayer(2000)
 history.2010 <- fetchLayer(2010)
 history.2020 <- fetchLayer(2020)
-history.2022 <- fetchLayer(2022)
+history.2024 <- fetchLayer(2024)
 
 historyData <- list(mapTitle = "Map 2. Historical collection activities")
 write(jsonlite::toJSON(historyData, auto_unbox = TRUE, pretty = TRUE), "viz_data/History-plotData.json")
@@ -142,7 +142,7 @@ heatMap <- leaflet(options=list(mx_mapId="History")) %>%
   addPolygons(data = history.2000, fillColor = ~pal(richness), fillOpacity = 0.6, weight = 0, options = list(mx_subLayerIndex = 10)) %>%
   addPolygons(data = history.2010, fillColor = ~pal(richness), fillOpacity = 0.6, weight = 0, options = list(mx_subLayerIndex = 11)) %>%
   addPolygons(data = history.2020, fillColor = ~pal(richness), fillOpacity = 0.6, weight = 0, options = list(mx_subLayerIndex = 12)) %>%
-  addPolygons(data = history.2022, fillColor = ~pal(richness), fillOpacity = 0.6, weight = 0, options = list(mx_subLayerIndex = 13)) %>%
+  addPolygons(data = history.2024, fillColor = ~pal(richness), fillOpacity = 0.6, weight = 0, options = list(mx_subLayerIndex = 13)) %>%
   addLegend(position = 'topright',
             colors = viridis_pal(option = "D")(t),
             labels = values) %>%
