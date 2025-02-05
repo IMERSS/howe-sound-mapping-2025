@@ -6,9 +6,11 @@ based on [R Markdown](https://rmarkdown.rstudio.com/).
 
 You can browse the published output of this project in these documents:
 
-* [Raw Storymapping Output](https://imerss.github.io/howe-sound-mapping/R-Markdown-AHSBR_Vascular_Plants_Story_Map_2025.html)
-* [Storymapping Reknitted into Scrollytelling Interface](https://imerss.github.io/howe-sound-mapping/R-Markdown-AHSBR_Vascular_Plants_Story_Map_2025-Reknitted.html)
+* [Raw Storymapping Output](https://imerss.github.io/howe-sound-mapping-2025/R-Markdown-AHSBR_Vascular_Plants_Story_Map_2025.html)
+* [Storymapping Reknitted into Scrollytelling Interface](
+* https://imerss.github.io/howe-sound-mapping-2025/R-Markdown-AHSBR_Vascular_Plants_Story_Map_2025-Reknitted.html)
 
+R-Markdown-AHSBR_Vascular_Plants_Story_Map_2025-Reknitted.html
 This was built using R and R Markdown, using free tools such as git, R and R studio, and publish and host it for free using
 [GitHub Pages](https://pages.github.com/).
 
