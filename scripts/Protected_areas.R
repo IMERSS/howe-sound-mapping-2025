@@ -30,7 +30,7 @@ plants.x.protected.area$X <- NULL
 
 # Load Protected Areas Shape
 
-protected.areas <- mx_read("spatial_data/vectors/Protected_Areas")
+protected.areas <- mx_read("spatial_data/vectors/AHSBR_vascular_plant_diversity_x_protected_areas_2024")
 
 # Create labels
 
