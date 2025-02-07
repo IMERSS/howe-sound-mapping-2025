@@ -80,7 +80,7 @@ BEC <- base::merge(BEC, palette, by.x ="MAP_LABEL", by.y="cat")
 
 # Write plant x BEC Zone summary to JSON file for viz
 
-write(jsonlite::toJSON(vascularData, auto_unbox = TRUE, pretty = TRUE), "viz_data/Vascular-plotData.json")
+write_json(vascularData, "viz_data/Vascular-plotData.json")
 
 # Plot map
 

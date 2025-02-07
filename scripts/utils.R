@@ -51,7 +51,7 @@ timedFread <- function (toread) {
   start <- Sys.time()
   frame <- data.table::fread(toread, encoding = "UTF-8")
   end <- Sys.time()
-  message("Read ", nrow(frame), " rows from ", toread, " in ", (end - start), "s")
+  message("Read ", nrow(frame), " rows from ", toread, " in ", round((end - start), digits = 3), "s")
   # Otherwise traditional R indexing notation fails
   as.data.frame(frame)
 }
@@ -62,7 +62,7 @@ timedWrite <- function (x, towrite) {
   commas <- which(sapply(x, function(y) any(grepl(",",y))))
   write.csv(x, towrite, na = "", row.names = FALSE, quote = commas, fileEncoding = "UTF-8")
   end <- Sys.time()
-  message("Written ", nrow(x), " rows to ", towrite, " in ", (end - start), "s")
+  message("Written ", nrow(x), " rows to ", towrite, " in ", round((end - start), digits = 3), "s")
 }
 
 # Attach the region's label as an "mx_regionId" option in the output data
@@ -86,4 +86,10 @@ write_utf8 <- function(text, f) {
   
   # close our connection
   close(con)
+}
+
+write_json <- function (data, filename) {
+  jsonData = jsonlite::toJSON(data, auto_unbox = TRUE, pretty = TRUE)
+  
+  write_utf8(jsonData, filename)
 }

@@ -62,7 +62,7 @@ palette = data.frame(
 protected.areas$colors <- palette$colors[match(unlist(protected.areas$prtctAT), palette$types)]
 
 protectedData <- list(mapTitle = "Map 4. Protected Areas")
-write(jsonlite::toJSON(protectedData, auto_unbox = TRUE, pretty = TRUE), "viz_data/Protected-plotData.json")
+write_json(protectedData, "viz_data/Protected-plotData.json")
 
 # Plot map
 

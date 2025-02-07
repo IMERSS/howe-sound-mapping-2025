@@ -129,9 +129,7 @@ statusTaxa <- split(x = taxa.status$taxa, f=taxa.status$reportingStatus)
 # (selection states corresponding with bar plot selections: 'new', 'historical','confirmed')
 statusData <- structure(list(palette = reportingPal, taxa = statusTaxa, mapTitle = "Map 3. Species Reporting Status"))
 
-jsonStatus = jsonlite::toJSON(statusData, auto_unbox = TRUE, pretty = TRUE)
-
-write_utf8(jsonStatus, "viz_data/Status-plotData.json")
+write_json(statusData, "viz_data/Status-plotData.json")
 
 # Export CSVs for confirmed, historical and new reports
 

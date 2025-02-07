@@ -119,7 +119,7 @@ history.2020 <- fetchLayer(2020)
 history.2024 <- fetchLayer(2024)
 
 historyData <- list(mapTitle = "Map 2. Historical collection activities")
-write(jsonlite::toJSON(historyData, auto_unbox = TRUE, pretty = TRUE), "viz_data/History-plotData.json")
+write_json(historyData, "viz_data/History-plotData.json")
 
 # Plot map
 
