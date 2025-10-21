@@ -137,7 +137,7 @@ zone_beta_index <- data.frame(
 # Merge all metrics and normalize composite index
 # =========================================
 zone_metrics <- RWR_BEC %>%
-  left_join(zone_endemics %>% select(MAP_LABEL, n_endemics, endemic_prop), by = "MAP_LABEL") %>%
+  left_join(zone_endemics %>% dplyr::select(MAP_LABEL, n_endemics, endemic_prop), by = "MAP_LABEL") %>%
   left_join(zone_beta_index, by = "MAP_LABEL") %>%
   # Normalize RWR to 0–1 by max value
   mutate(
@@ -151,8 +151,38 @@ zone_metrics <- RWR_BEC %>%
 # Inspect the merged dataframe
 print(zone_metrics)
 
+# Create annotation vector
+zone_annotations <- c(
+  "Fairly high due to moderate RWR despite fewer unique species",
+  "Highest combined biodiversity value: many rare/native species + moderate uniqueness relative to other zones",
+  "Low-to-moderate; few rare species and moderate uniqueness",
+  "Low; few rare species and high overlap with other zones",
+  "Lowest; very low RWR, low number of endemics, though beta uniqueness is highest",
+  "Moderate value, primarily due to RWR rather than compositional uniqueness",
+  "High value, driven by moderate RWR and relatively high beta diversity",
+  "Lower value, few endemics and lower RWR relative to the max",
+  "Moderate biodiversity value, RWR and uniqueness contributing roughly equally"
+)
+
+# Add to dataframe
+zone_metrics$annotation <- zone_annotations
+
+# Inspect
+zone_metrics
+
+
 # Save for downstream analyses
-write.csv(zone_metrics, "output/BEC_zone_metrics_normalized.csv", row.names = FALSE)
+write.csv(zone_metrics, "outputs/AHSBR_BEC_zone_metrics_normalized.csv", row.names = FALSE)
+
+
+
+
+
+
+
+
+
+
 
 
 # Call spatial data
@@ -162,6 +192,9 @@ BEC <- mx_read("spatial_data/vectors/BEC")
 
 # Layer 2: VRI
 VRI <- mx_read("spatial_data/vectors/VRI")
+
+
+
 
 
 
