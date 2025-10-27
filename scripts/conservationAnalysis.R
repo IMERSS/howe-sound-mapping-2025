@@ -186,12 +186,27 @@ zone_metrics
 # Layer 1: BEC zones
 BEC <- mx_read("spatial_data/vectors/BEC")
 
+# VRI temporarily rendered as tabular data for analysis until we can pull SHP from Google
+
 # Layer 2: VRI
 # VRI <- mx_read("spatial_data/vectors/VRI")
 
-# VRI temporarily rendered as tabular data for analysis until we can pull SHP from Google
+
+# Manipulate VRI as CSV / table for now until we can deal with the hefty dataset
+
+# VRI <- st_drop_geometry(VRI)
+# write.csv(VRI, "tabular_data/VRI.csv")
+
 
 VRI <- read.csv('tabular_data/VRI.csv')
+
+
+
+
+
+
+
+
 
 
 
