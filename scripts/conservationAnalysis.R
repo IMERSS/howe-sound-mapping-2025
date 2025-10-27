@@ -284,6 +284,8 @@ ggplot(VRI_poly_index, aes(x = composite_index_poly)) +
 
 
 
+
+
 # Call spatial data
 
 # Layer 1: BEC zones
