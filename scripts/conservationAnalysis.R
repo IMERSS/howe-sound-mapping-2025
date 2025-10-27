@@ -181,6 +181,109 @@ zone_metrics
 # write.csv(zone_metrics, "outputs/AHSBR_BEC_zone_metrics_normalized.csv", row.names = FALSE)
 
 
+
+# Downscale biodiversity indices to map with VRI mapping data
+
+VRI <- read.csv('tabular_data/VRI.csv')
+
+# Normalize VRI data to map with BEC zone-based ecological indices
+
+# Extract base BEC codes (keep deciles as raw 0–10 values)
+VRI_norm <- VRI %>%
+  mutate(
+    BEC_SS1_base = str_extract(BEC_SSCo_1, "^[^/]+"),
+    BEC_SS2_base = str_extract(BEC_SSCo_2, "^[^/]+")
+  )
+
+# Optional sanity check: confirm deciles sum to 10
+VRI_check <- VRI_norm %>%
+  mutate(TotalDecile = DEC_S1 + DEC_S2 + DEC_S3) %>%
+  dplyr::select(fid, DEC_S1, DEC_S2, DEC_S3, TotalDecile) %>%
+  filter(TotalDecile != 10 | is.na(TotalDecile))
+
+if(nrow(VRI_check) > 0){
+  warning("Some polygons do not sum to 10! Inspect VRI_check.")
+}
+
+# Make long table per decile, mapping each decile to its correct BEC
+VRI_long <- bind_rows(
+  VRI_norm %>%
+    dplyr::select(fid, BEC_base = BEC_LABEL, Decile = DEC_S1) %>%
+    mutate(DecileType = "DEC_S1"),
+  VRI_norm %>%
+    dplyr::select(fid, BEC_base = BEC_SS1_base, Decile = DEC_S2) %>%
+    mutate(DecileType = "DEC_S2"),
+  VRI_norm %>%
+    dplyr::select(fid, BEC_base = BEC_SS2_base, Decile = DEC_S3) %>%
+    mutate(DecileType = "DEC_S3")
+) %>%
+  # Keep only valid BECs with nonzero decile
+  filter(!is.na(BEC_base) & Decile > 0) %>%
+  arrange(fid, DecileType)
+
+# Merge with zone metrics
+VRI_indices <- VRI_long %>%
+  left_join(zone_metrics, by = c("BEC_base" = "MAP_LABEL"))
+
+# Keep only the fields needed for indexing
+VRI_indices <- VRI_indices %>%
+  dplyr::select(fid, BEC_base, DecileType, Decile, n_species, RWR, RWR_norm, n_endemics, endemic_prop, mean_dissimilarity, composite_index)
+
+# Calculate index by polgyon, weighted by deciles
+
+VRI_poly_index <- VRI_indices %>%
+  # Group by polygon ID
+  group_by(fid) %>%
+  
+  # Compute weights for each decile within the polygon
+  # Each decile contributes proportionally to the sum of all deciles (should sum to 10)
+  mutate(DecileWeight = Decile / sum(Decile, na.rm = TRUE)) %>%
+  
+  # Summarise to get one row per polygon
+  summarise(
+    # Weighted average of composite_index
+    composite_index_poly = sum(composite_index * DecileWeight, na.rm = TRUE),
+    
+    # Optionally, include other weighted metrics if needed
+    RWR_poly            = sum(RWR * DecileWeight, na.rm = TRUE),
+    RWR_norm_poly       = sum(RWR_norm * DecileWeight, na.rm = TRUE),
+    n_species_poly      = sum(n_species * DecileWeight, na.rm = TRUE),
+    n_endemics_poly     = sum(n_endemics * DecileWeight, na.rm = TRUE),
+    endemic_prop_poly   = sum(endemic_prop * DecileWeight, na.rm = TRUE),
+    mean_dissim_poly    = sum(mean_dissimilarity * DecileWeight, na.rm = TRUE),
+    
+    # Keep the sum of deciles for QC
+    TotalDecile         = sum(Decile, na.rm = TRUE),
+    
+    .groups = "drop"
+  ) %>%
+  
+  # Optional: sanity check to ensure deciles sum to 10
+  mutate(
+    warning_flag = ifelse(TotalDecile != 10, TRUE, FALSE)
+  )
+
+# Inspect results
+head(VRI_poly_index)
+
+# Histogram of polygon-level composite index
+ggplot(VRI_poly_index, aes(x = composite_index_poly)) +
+  geom_histogram(
+    bins = 30,                 # adjust bin count as needed
+    fill = "steelblue",
+    color = "black",
+    alpha = 0.7
+  ) +
+  labs(
+    title = "Distribution of Weighted Composite Index per Polygon",
+    x = "Weighted Composite Index",
+    y = "Number of Polygons"
+  ) +
+  theme_minimal()
+
+
+
+
 # Call spatial data
 
 # Layer 1: BEC zones
@@ -196,9 +299,6 @@ BEC <- mx_read("spatial_data/vectors/BEC")
 
 # VRI <- st_drop_geometry(VRI)
 # write.csv(VRI, "tabular_data/VRI.csv")
-
-
-VRI <- read.csv('tabular_data/VRI.csv')
 
 
 
