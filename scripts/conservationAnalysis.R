@@ -10,11 +10,7 @@ if (!isTRUE(getOption('knitr.in.progress'))) {
 # =========================================
 # Load libraries
 # =========================================
-<<<<<<< HEAD
 
-=======
-library(b3gbi)
->>>>>>> e7c2f1fd10e71566d4c953c3cd34ba527d753123
 library(dplyr)
 library(htmlwidgets)
 library(jsonlite)
@@ -182,17 +178,7 @@ zone_metrics
 
 
 # Save for downstream analyses
-write.csv(zone_metrics, "outputs/AHSBR_BEC_zone_metrics_normalized.csv", row.names = FALSE)
-
-
-
-
-
-
-
-
-
-
+# write.csv(zone_metrics, "outputs/AHSBR_BEC_zone_metrics_normalized.csv", row.names = FALSE)
 
 
 # Call spatial data
@@ -203,14 +189,9 @@ BEC <- mx_read("spatial_data/vectors/BEC")
 # Layer 2: VRI
 # VRI <- mx_read("spatial_data/vectors/VRI")
 
-head(VRI)
+# VRI temporarily rendered as tabular data for analysis until we can pull SHP from Google
 
-# Manipulate VRI as CSV / table for now until we can deal with the hefty dataset
-
-VRI <- st_drop_geometry(VRI)
-
-# write.csv(VRI, "tabular_data/VRI.csv")
-
+VRI <- read.csv('tabular_data/VRI.csv')
 
 
 
