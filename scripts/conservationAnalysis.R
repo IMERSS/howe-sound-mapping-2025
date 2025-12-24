@@ -1,5 +1,5 @@
 # =========================================
-# Visualize vascular plant diversity in Átl’ka7tsem by BEC unit
+# Compute ecological indices for Howe Sound vegetation communities
 # =========================================
 
 # Set working directory to project root (parent of current script)
@@ -59,9 +59,6 @@ set.seed(42)  # For reproducibility of NMDS
 # Run NMDS using Bray-Curtis distance
 nmds_result <- metaMDS(site_species_matrix, distance = "bray", k = 2, trymax = 100)
 
-# Check NMDS stress (goodness-of-fit)
-nmds_result$stress
-
 # Extract site scores (coordinates) for plotting
 nmds_sites <- as.data.frame(scores(nmds_result, display = "sites"))
 nmds_sites$MAP_LABEL <- rownames(nmds_sites)
@@ -70,21 +67,35 @@ nmds_sites$MAP_LABEL <- rownames(nmds_sites)
 nmds_species <- as.data.frame(scores(nmds_result, display = "species"))
 nmds_species$species <- rownames(nmds_species)
 
-# Identify common species (occur in ≥3 zones)
+# Identify common vs. less common species
 species_freq <- colSums(site_species_matrix)
 common_species <- names(species_freq[species_freq >= 3])
-nmds_species_sub <- nmds_species %>% filter(species %in% common_species)
+rare_species   <- names(species_freq[species_freq < 3])
+
+nmds_species$group <- ifelse(nmds_species$species %in% common_species, "Common (≥3 zones)", "Less common (<3 zones)")
 
 # =========================================
-# Plot NMDS with selected species overlay
+# Plot NMDS with species colored by frequency
 # =========================================
 ggplot() +
-  geom_point(data = nmds_sites, aes(x = NMDS1, y = NMDS2), size = 3, color = "blue") +
-  geom_text(data = nmds_sites, aes(x = NMDS1, y = NMDS2, label = MAP_LABEL), vjust = -0.5) +
-  geom_point(data = nmds_species_sub, aes(x = NMDS1, y = NMDS2), color = "red", alpha = 0.5, size = 1) +
-  geom_text(data = nmds_species_sub, aes(x = NMDS1, y = NMDS2, label = species), color = "red", alpha = 0.7, size = 2) +
+  # Sites
+  geom_point(data = nmds_sites, aes(x = NMDS1, y = NMDS2), size = 3, color = "grey40") +
+  geom_text(data = nmds_sites, aes(x = NMDS1, y = NMDS2, label = MAP_LABEL), vjust = -0.5, size = 3) +
+  
+  # Species
+  geom_point(data = nmds_species, aes(x = NMDS1, y = NMDS2, color = group), alpha = 0.7, size = 1.5) +
+  geom_text(data = nmds_species, aes(x = NMDS1, y = NMDS2, label = species, color = group),
+            alpha = 0.8, size = 2, vjust = -0.3) +
+  
+  scale_color_manual(values = c("Common (≥3 zones)" = "red", "Less common (<3 zones)" = "blue")) +
+  
   theme_minimal() +
-  labs(title = "NMDS of Vegetation by BEC Zone with Species Overlay")
+  labs(
+    title = "NMDS of Vegetation by BEC Zone with Species Frequency Highlighted",
+    color = "Species frequency"
+  ) +
+  theme(legend.position = "bottom")
+
 
 # =========================================
 # Compute rarity-weighted richness (RWR)
@@ -181,53 +192,74 @@ zone_metrics
 # write.csv(zone_metrics, "outputs/AHSBR_BEC_zone_metrics_normalized.csv", row.names = FALSE)
 
 
-
 # Downscale biodiversity indices to map with VRI mapping data
 
-VRI <- read.csv('tabular_data/VRI.csv')
+VRI <- read.csv('tabular_data/VRI2024_TEIS_2025_x_AHBR_Boundary.csv')
 
-# Normalize VRI data to map with BEC zone-based ecological indices
+# Structural stage data appear incomplete; for now, just output the zone metrics merged with the VRI
 
-# Extract base BEC codes (keep deciles as raw 0–10 values)
-VRI_norm <- VRI %>%
-  mutate(
-    BEC_SS1_base = str_extract(BEC_SSCo_1, "^[^/]+"),
-    BEC_SS2_base = str_extract(BEC_SSCo_2, "^[^/]+")
+VRI<- VRI %>%
+  left_join(
+    zone_metrics,
+    by = c("BEC_LABEL" = "MAP_LABEL")
   )
 
-# Optional sanity check: confirm deciles sum to 10
-VRI_check <- VRI_norm %>%
-  mutate(TotalDecile = DEC_S1 + DEC_S2 + DEC_S3) %>%
-  dplyr::select(fid, DEC_S1, DEC_S2, DEC_S3, TotalDecile) %>%
-  filter(TotalDecile != 10 | is.na(TotalDecile))
+write.csv(VRI, "outputs/VRI2024_zone_vegetation_indices.csv", row.names = FALSE)
 
-if(nrow(VRI_check) > 0){
-  warning("Some polygons do not sum to 10! Inspect VRI_check.")
-}
 
-# Make long table per decile, mapping each decile to its correct BEC
-VRI_long <- bind_rows(
-  VRI_norm %>%
-    dplyr::select(fid, BEC_base = BEC_LABEL, Decile = DEC_S1) %>%
-    mutate(DecileType = "DEC_S1"),
-  VRI_norm %>%
-    dplyr::select(fid, BEC_base = BEC_SS1_base, Decile = DEC_S2) %>%
-    mutate(DecileType = "DEC_S2"),
-  VRI_norm %>%
-    dplyr::select(fid, BEC_base = BEC_SS2_base, Decile = DEC_S3) %>%
-    mutate(DecileType = "DEC_S3")
-) %>%
-  # Keep only valid BECs with nonzero decile
-  filter(!is.na(BEC_base) & Decile > 0) %>%
-  arrange(fid, DecileType)
+# Incorporate structural stage
 
-# Merge with zone metrics
-VRI_indices <- VRI_long %>%
-  left_join(zone_metrics, by = c("BEC_base" = "MAP_LABEL"))
+VRI <- read.csv("outputs/VRI2024_zone_vegetation_indices.csv")
 
-# Keep only the fields needed for indexing
-VRI_indices <- VRI_indices %>%
-  dplyr::select(fid, BEC_base, DecileType, Decile, n_species, RWR, RWR_norm, n_endemics, endemic_prop, mean_dissimilarity, composite_index)
+
+structural.stage <- read.csv("tabular_data/BEC-site-series.csv")
+
+names(VRI)
+names(structural.stage)
+
+VRI <- VRI %>%
+  left_join(
+    structural.stage %>%
+      dplyr::select(
+        FEATURE_ID,
+        POLYGON_ID,
+        Proj_Age,
+        TEM_StrStage,
+        TEM_StrClass
+      ),
+    by = c("VRI2024_ID" = "POLYGON_ID")
+  )
+
+vri_ids  <- unique(VRI$VRI2024_ID)
+ss_ids   <- unique(structural.stage$POLYGON_ID)
+f_ids <- unique(structural.stage$FEATURE_ID)
+map_ids <- unique(structural.stage$MAP_ID)
+
+# how many IDs overlap?
+length(intersect(vri_ids, ss_ids))
+length(intersect(vri_ids, f_ids))
+length(intersect(vri_ids, map_ids))
+
+id_matrix <- VRI %>%
+  distinct(VRI2024_ID) %>%
+  mutate(
+    FEATURE_ID_match  = ifelse(
+      VRI2024_ID %in% structural.stage$FEATURE_ID,
+      VRI2024_ID,
+      NA
+    ),
+    POLYGON_ID_match = ifelse(
+      VRI2024_ID %in% structural.stage$POLYGON_ID,
+      VRI2024_ID,
+      NA
+    )
+  )
+
+write.csv(id_matrix, "outputs/matching_identifiers.csv")
+
+
+## Note the following is depracated for now, because deciles can only be interpreted in relation to SS data, which we cannot
+## assign ecological indices to!!!
 
 # Calculate index by polgyon, weighted by deciles
 
