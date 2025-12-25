@@ -187,131 +187,48 @@ zone_metrics$annotation <- zone_annotations
 # Inspect
 zone_metrics
 
-
 # Save for downstream analyses
 # write.csv(zone_metrics, "outputs/AHSBR_BEC_zone_metrics_normalized.csv", row.names = FALSE)
 
 
 # Downscale biodiversity indices to map with VRI mapping data
 
-VRI <- read.csv('tabular_data/VRI2024_TEIS_2025_x_AHBR_Boundary.csv')
+# Load VRI and BEC veg indices
 
-# Structural stage data appear incomplete; for now, just output the zone metrics merged with the VRI
+VRI <- read.csv('tabular_data/AHSBR_BEC-site-series.csv')
+
+BEC <- read.csv("outputs/AHSBR_BEC_zone_metrics_normalized.csv")
 
 VRI<- VRI %>%
   left_join(
-    zone_metrics,
+    BEC,
     by = c("BEC_LABEL" = "MAP_LABEL")
   )
 
-write.csv(VRI, "outputs/VRI2024_zone_vegetation_indices.csv", row.names = FALSE)
-
-
-# Incorporate structural stage
-
-VRI <- read.csv("outputs/VRI2024_zone_vegetation_indices.csv")
-
-
-structural.stage <- read.csv("tabular_data/BEC-site-series.csv")
-
-names(VRI)
-names(structural.stage)
+# Apply penalty for structural stage
 
 VRI <- VRI %>%
-  left_join(
-    structural.stage %>%
-      dplyr::select(
-        FEATURE_ID,
-        POLYGON_ID,
-        Proj_Age,
-        TEM_StrStage,
-        TEM_StrClass
-      ),
-    by = c("VRI2024_ID" = "POLYGON_ID")
-  )
-
-vri_ids  <- unique(VRI$VRI2024_ID)
-ss_ids   <- unique(structural.stage$POLYGON_ID)
-f_ids <- unique(structural.stage$FEATURE_ID)
-map_ids <- unique(structural.stage$MAP_ID)
-
-# how many IDs overlap?
-length(intersect(vri_ids, ss_ids))
-length(intersect(vri_ids, f_ids))
-length(intersect(vri_ids, map_ids))
-
-id_matrix <- VRI %>%
-  distinct(VRI2024_ID) %>%
+  group_by(VRI2024_ID) %>%
   mutate(
-    FEATURE_ID_match  = ifelse(
-      VRI2024_ID %in% structural.stage$FEATURE_ID,
-      VRI2024_ID,
-      NA
-    ),
-    POLYGON_ID_match = ifelse(
-      VRI2024_ID %in% structural.stage$POLYGON_ID,
-      VRI2024_ID,
-      NA
+    age_min = min(Age_Class, na.rm = TRUE),
+    age_max = max(Age_Class, na.rm = TRUE),
+    age_range = age_max - age_min,
+    stage_penalty = age_range / 9
+  ) %>%
+  ungroup()
+
+# Except where TEM_StrClass == "Sparse/Bryoid (Rock, Ice, Moss)",
+
+VRI <- VRI %>%
+  mutate(
+    stage_penalty = case_when(
+      TEM_StrClass == "Sparse/Bryoid (Rock, Ice, Moss)" ~ 0,
+      is.na(Age_Class) ~ NA_real_,
+      TRUE ~ (9 - Age_Class) / 9
     )
   )
 
-write.csv(id_matrix, "outputs/matching_identifiers.csv")
 
-
-## Note the following is depracated for now, because deciles can only be interpreted in relation to SS data, which we cannot
-## assign ecological indices to!!!
-
-# Calculate index by polgyon, weighted by deciles
-
-VRI_poly_index <- VRI_indices %>%
-  # Group by polygon ID
-  group_by(fid) %>%
-  
-  # Compute weights for each decile within the polygon
-  # Each decile contributes proportionally to the sum of all deciles (should sum to 10)
-  mutate(DecileWeight = Decile / sum(Decile, na.rm = TRUE)) %>%
-  
-  # Summarise to get one row per polygon
-  summarise(
-    # Weighted average of composite_index
-    composite_index_poly = sum(composite_index * DecileWeight, na.rm = TRUE),
-    
-    # Optionally, include other weighted metrics if needed
-    RWR_poly            = sum(RWR * DecileWeight, na.rm = TRUE),
-    RWR_norm_poly       = sum(RWR_norm * DecileWeight, na.rm = TRUE),
-    n_species_poly      = sum(n_species * DecileWeight, na.rm = TRUE),
-    n_endemics_poly     = sum(n_endemics * DecileWeight, na.rm = TRUE),
-    endemic_prop_poly   = sum(endemic_prop * DecileWeight, na.rm = TRUE),
-    mean_dissim_poly    = sum(mean_dissimilarity * DecileWeight, na.rm = TRUE),
-    
-    # Keep the sum of deciles for QC
-    TotalDecile         = sum(Decile, na.rm = TRUE),
-    
-    .groups = "drop"
-  ) %>%
-  
-  # Optional: sanity check to ensure deciles sum to 10
-  mutate(
-    warning_flag = ifelse(TotalDecile != 10, TRUE, FALSE)
-  )
-
-# Inspect results
-head(VRI_poly_index)
-
-# Histogram of polygon-level composite index
-ggplot(VRI_poly_index, aes(x = composite_index_poly)) +
-  geom_histogram(
-    bins = 30,                 # adjust bin count as needed
-    fill = "steelblue",
-    color = "black",
-    alpha = 0.7
-  ) +
-  labs(
-    title = "Distribution of Weighted Composite Index per Polygon",
-    x = "Weighted Composite Index",
-    y = "Number of Polygons"
-  ) +
-  theme_minimal()
 
 
 
