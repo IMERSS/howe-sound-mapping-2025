@@ -1,5 +1,6 @@
 # =========================================
 # Compute ecological indices for Howe Sound vegetation communities
+# (with effort-based rarefaction)
 # =========================================
 
 # Set working directory to project root (parent of current script)
@@ -27,23 +28,42 @@ library(viridis)
 source("scripts/utils.R")
 
 # =========================================
-# Source hefty data from Google Drive
-# =========================================
-
-# downloadGdrive("", )
-
-# =========================================
 # Load vascular plant occurrence summary
 # =========================================
+
 BEC.x.plants <- read.csv("tabular_data/BEC_x_vascular_plants_summary_2024.csv")
 
 # Limit analyses to native species
-BEC.x.plants.native <- BEC.x.plants %>% filter(establishmentMeans == 'native')
+BEC.x.plants.native <- BEC.x.plants %>%
+  filter(establishmentMeans == 'native')
+
+# =========================================
+# RAREFACTION TO CONTROL FOR SAMPLING EFFORT
+# =========================================
+
+# Quantify sampling effort per BEC zone
+effort_by_zone <- BEC.x.plants.native %>%
+  count(MAP_LABEL, name = "n_obs")
+
+# Inspect effort distribution (recommended to run interactively)
+print(summary(effort_by_zone$n_obs))
+
+# Choose rarefaction depth (minimum effort across zones)
+min_effort <- min(effort_by_zone$n_obs)
+
+set.seed(42)  # Reproducibility
+
+# Rarefy: equal number of observations per zone
+BEC.x.plants.rarefied <- BEC.x.plants.native %>%
+  group_by(MAP_LABEL) %>%
+  slice_sample(n = min_effort) %>%
+  ungroup()
 
 # =========================================
 # Create site-species presence/absence matrix for NMDS
 # =========================================
-site_species_matrix <- BEC.x.plants.native %>%
+
+site_species_matrix <- BEC.x.plants.rarefied %>%
   dplyr::select(MAP_LABEL, scientificName) %>%
   distinct() %>%
   mutate(presence = 1) %>%
@@ -57,9 +77,14 @@ site_species_matrix <- BEC.x.plants.native %>%
 set.seed(42)  # For reproducibility of NMDS
 
 # Run NMDS using Bray-Curtis distance
-nmds_result <- metaMDS(site_species_matrix, distance = "bray", k = 2, trymax = 100)
+nmds_result <- metaMDS(
+  site_species_matrix,
+  distance = "bray",
+  k = 2,
+  trymax = 100
+)
 
-# Extract site scores (coordinates) for plotting
+# Extract site scores (coordinates)
 nmds_sites <- as.data.frame(scores(nmds_result, display = "sites"))
 nmds_sites$MAP_LABEL <- rownames(nmds_sites)
 
@@ -72,62 +97,52 @@ species_freq <- colSums(site_species_matrix)
 common_species <- names(species_freq[species_freq >= 3])
 rare_species   <- names(species_freq[species_freq < 3])
 
-nmds_species$group <- ifelse(nmds_species$species %in% common_species, "Common (≥3 zones)", "Less common (<3 zones)")
-
-# =========================================
-# Plot NMDS with species colored by frequency
-# =========================================
-ggplot() +
-  # Sites
-  geom_point(data = nmds_sites, aes(x = NMDS1, y = NMDS2), size = 3, color = "grey40") +
-  geom_text(data = nmds_sites, aes(x = NMDS1, y = NMDS2, label = MAP_LABEL), vjust = -0.5, size = 3) +
-  
-  # Species
-  geom_point(data = nmds_species, aes(x = NMDS1, y = NMDS2, color = group), alpha = 0.7, size = 1.5) +
-  geom_text(data = nmds_species, aes(x = NMDS1, y = NMDS2, label = species, color = group),
-            alpha = 0.8, size = 2, vjust = -0.3) +
-  
-  scale_color_manual(values = c("Common (≥3 zones)" = "red", "Less common (<3 zones)" = "blue")) +
-  
-  theme_minimal() +
-  labs(
-    title = "NMDS of Vegetation by BEC Zone with Species Frequency Highlighted",
-    color = "Species frequency"
-  ) +
-  theme(legend.position = "bottom")
-
+nmds_species$group <- ifelse(
+  nmds_species$species %in% common_species,
+  "Common (≥3 zones)",
+  "Less common (<3 zones)"
+)
 
 # =========================================
 # Compute rarity-weighted richness (RWR)
 # =========================================
-# Step 1: compute rarity of each species = 1 / (# of zones it occurs in)
-species_rarity <- BEC.x.plants.native %>%
+
+# Step 1: species rarity = inverse of number of zones occupied
+species_rarity <- BEC.x.plants.rarefied %>%
   distinct(scientificName, MAP_LABEL) %>%
   group_by(scientificName) %>%
   summarize(
     n_BECs = n_distinct(MAP_LABEL),
-    rarity_weight = 1 / n_BECs
+    rarity_weight = 1 / n_BECs,
+    .groups = "drop"
   )
 
-# Step 2: compute RWR per zone by summing rarity weights of species present
-RWR_BEC <- BEC.x.plants.native %>%
+# Step 2: sum rarity weights per zone
+RWR_BEC <- BEC.x.plants.rarefied %>%
   distinct(scientificName, MAP_LABEL) %>%
   left_join(species_rarity, by = "scientificName") %>%
   group_by(MAP_LABEL) %>%
   summarize(
     n_species = n(),
-    RWR = sum(rarity_weight, na.rm = TRUE)
+    RWR = sum(rarity_weight, na.rm = TRUE),
+    .groups = "drop"
   )
 
 # =========================================
 # Identify zone endemics
 # =========================================
-zone_endemics <- BEC.x.plants.native %>%
+
+zone_endemics <- BEC.x.plants.rarefied %>%
   distinct(MAP_LABEL, scientificName) %>%
   group_by(scientificName) %>%
-  summarize(n_zones = n(), .groups = "drop") %>%
-  right_join(BEC.x.plants.native %>% distinct(MAP_LABEL, scientificName),
-             by = "scientificName") %>%
+  summarize(
+    n_zones = n(),
+    .groups = "drop"
+  ) %>%
+  right_join(
+    BEC.x.plants.rarefied %>% distinct(MAP_LABEL, scientificName),
+    by = "scientificName"
+  ) %>%
   group_by(MAP_LABEL) %>%
   summarize(
     n_species = n(),
@@ -139,56 +154,74 @@ zone_endemics <- BEC.x.plants.native %>%
 # =========================================
 # Compute Jaccard dissimilarity between zones
 # =========================================
-beta_jaccard <- vegan::vegdist(site_species_matrix, method = "jaccard")
 
-# Convert to matrix
+beta_jaccard <- vegan::vegdist(
+  site_species_matrix,
+  method = "jaccard"
+)
+
 beta_matrix <- as.matrix(beta_jaccard)
 
-# Compute mean dissimilarity per zone
 zone_beta_index <- data.frame(
   MAP_LABEL = rownames(beta_matrix),
   mean_dissimilarity = rowMeans(beta_matrix)
 )
 
 # =========================================
-# Merge all metrics and normalize composite index
+# Merge all metrics and compute composite index
 # =========================================
+
 zone_metrics <- RWR_BEC %>%
-  left_join(zone_endemics %>% dplyr::select(MAP_LABEL, n_endemics, endemic_prop), by = "MAP_LABEL") %>%
+  left_join(
+    zone_endemics %>% dplyr::select(MAP_LABEL, n_endemics, endemic_prop),
+    by = "MAP_LABEL"
+  ) %>%
   left_join(zone_beta_index, by = "MAP_LABEL") %>%
-  # Normalize RWR to 0–1 by max value
   mutate(
     RWR_norm = RWR / max(RWR),
-    # Compute normalized composite index: (normalized RWR) × (mean dissimilarity)
     composite_index = RWR_norm * mean_dissimilarity
   ) %>%
-  # Reorder columns for clarity
-  dplyr::select(MAP_LABEL, n_species, RWR, RWR_norm, n_endemics, endemic_prop, mean_dissimilarity, composite_index)
+  dplyr::select(
+    MAP_LABEL,
+    n_species,
+    RWR,
+    RWR_norm,
+    n_endemics,
+    endemic_prop,
+    mean_dissimilarity,
+    composite_index
+  )
 
-# Inspect the merged dataframe
-print(zone_metrics)
-
-# Create annotation vector
-zone_annotations <- c(
-  "Fairly high due to moderate RWR despite fewer unique species",
-  "Highest combined biodiversity value: many rare/native species + moderate uniqueness relative to other zones",
-  "Low-to-moderate; few rare species and moderate uniqueness",
-  "Low; few rare species and high overlap with other zones",
-  "Lowest; very low RWR, low number of endemics, though beta uniqueness is highest",
-  "Moderate value, primarily due to RWR rather than compositional uniqueness",
-  "High value, driven by moderate RWR and relatively high beta diversity",
-  "Lower value, few endemics and lower RWR relative to the max",
-  "Moderate biodiversity value, RWR and uniqueness contributing roughly equally"
+# Add annotations for rarefied outputs
+zone_annotations_rarefied <- c(
+  "Highest combined biodiversity value; high RWR and a large number of rare and endemic species, coupled with strong compositional distinctness relative to other zones.",
+  
+  "Very high combined biodiversity value; slightly lower than the maximum after normalization, reflecting high RWR and endemism with moderately high compositional uniqueness.",
+  
+  "Low-to-moderate biodiversity value; relatively few rare and endemic species and only moderate compositional uniqueness.",
+  
+  "Low biodiversity value; low RWR and few endemics, with substantial overlap in species composition relative to other zones.",
+  
+  "Low biodiversity value; very low RWR and few endemics, despite moderate beta diversity indicating some compositional differentiation.",
+  
+  "Moderate biodiversity value, driven primarily by intermediate RWR and endemism rather than strong compositional uniqueness.",
+  
+  "High biodiversity value; high RWR and a large number of endemic species, combined with relatively high beta diversity.",
+  
+  "Moderate biodiversity value; lower RWR and endemism relative to the highest zones, with moderate compositional uniqueness.",
+  
+  "Moderate-to-high biodiversity value; relatively high RWR and endemism, with beta diversity contributing meaningfully to overall value."
 )
 
-# Add to dataframe
-zone_metrics$annotation <- zone_annotations
+zone_metrics$annotation <- zone_annotations_rarefied
 
-# Inspect
-zone_metrics
+zone_metrics <- zone_metrics %>%
+  dplyr::rename(
+    n_species_rarefied = n_species
+  )
 
 # Save for downstream analyses
-# write.csv(zone_metrics, "outputs/AHSBR_BEC_zone_metrics_normalized.csv", row.names = FALSE)
+write.csv(zone_metrics, "outputs/AHSBR_BEC_zone_metrics_normalized_sampling_effort.csv", row.names = FALSE)
 
 
 # Downscale biodiversity indices to map with VRI mapping data
@@ -197,28 +230,15 @@ zone_metrics
 
 VRI <- read.csv('tabular_data/AHSBR_BEC-site-series.csv')
 
-BEC <- read.csv("outputs/AHSBR_BEC_zone_metrics_normalized.csv")
+BEC <- read.csv("outputs/AHSBR_BEC_zone_metrics_normalized_sampling_effort.csv")
 
-VRI<- VRI %>%
+VRI <- VRI %>%
   left_join(
     BEC,
     by = c("BEC_LABEL" = "MAP_LABEL")
   )
 
 # Apply penalty for structural stage
-
-VRI <- VRI %>%
-  group_by(VRI2024_ID) %>%
-  mutate(
-    age_min = min(Age_Class, na.rm = TRUE),
-    age_max = max(Age_Class, na.rm = TRUE),
-    age_range = age_max - age_min,
-    stage_penalty = age_range / 9
-  ) %>%
-  ungroup()
-
-# Except where TEM_StrClass == "Sparse/Bryoid (Rock, Ice, Moss)",
-
 VRI <- VRI %>%
   mutate(
     stage_penalty = case_when(
@@ -228,9 +248,76 @@ VRI <- VRI %>%
     )
   )
 
+# Assign weightings for CDC Ranked ecological communities
+
+# Helper to convert BC list to numeric weight
+bc_weight <- function(x) {
+  case_when(
+    x == "Red"  ~ 2.0,
+    x == "Blue" ~ 1.5,
+    TRUE        ~ 1.0   # Yellow, NA, "", anything else
+  )
+}
+
+VRI <- VRI %>%
+  mutate(
+    conservation_multiplier =
+      S1_DECn * bc_weight(S1_BCList) +
+      S2_DECn * bc_weight(S2_BCList) +
+      S3_DECn * bc_weight(S3_BCList)
+  )
+
+VRI <- VRI %>%
+  mutate(
+    stage_modifier = 1 - 0.5 * stage_penalty,  
+    final_biodiversity_index =
+      composite_index *
+      stage_modifier *
+      conservation_multiplier
+  )
+
+# Normalize
+VRI <- VRI %>%
+  mutate(
+    final_biodiversity_index_norm =
+      (final_biodiversity_index - min(final_biodiversity_index, na.rm = TRUE)) /
+      (max(final_biodiversity_index, na.rm = TRUE) - min(final_biodiversity_index, na.rm = TRUE))
+  )
 
 
+# Assess influence of modifiers on final biodiversity index
+ggplot(VRI, aes(x = composite_index,
+               y = final_biodiversity_index,
+               color = stage_penalty)) +
+  geom_point(alpha = 0.6, size = 2) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  scale_color_viridis_c(option = "C") +
+  coord_equal() +
+  labs(
+    x = "Composite biodiversity index (unmodified)",
+    y = "Final biodiversity index (with modifiers)",
+    color = "Stage penalty",
+    title = "Effect of stage and conservation modifiers on biodiversity index"
+  ) +
+  theme_minimal()
 
+VRI %>%
+  mutate(conservation_effect =
+           final_biodiversity_index /
+           (composite_index * stage_modifier)) %>%
+  ggplot(aes(x = conservation_effect)) +
+  geom_histogram(bins = 30, alpha = 0.7) +
+  geom_vline(xintercept = 1, linetype = "dashed") +
+  labs(
+    x = "Conservation multiplier effect (conditional on stage)",
+    y = "Count",
+    title = "Distribution of conservation effects after accounting for stage"
+  ) +
+  theme_minimal()
+
+
+# Write output
+write.csv(VRI, "outputs/AHSBR_VRI_vascular_plant_biodiversity_indices.csv", row.names = FALSE)
 
 
 
